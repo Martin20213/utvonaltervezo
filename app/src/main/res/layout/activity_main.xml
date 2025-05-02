@@ -1,0 +1,91 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#2A2A2A">
+
+    <!-- Térkép Placeholder -->
+    <TextView
+        android:id="@+id/mapPlaceholder"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_above="@+id/startPointEditText"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="20dp"
+        android:background="#e0e0e0"
+        android:gravity="center"
+        android:text="Google Maps (Placeholder)"
+        android:textColor="#000000"
+        android:textSize="18sp"
+        android:visibility="visible" />
+
+    <!-- Kiinduló pont EditText -->
+    <EditText
+        android:id="@+id/startPointEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/endPointEditText"
+        android:layout_marginBottom="20dp"
+        android:hint="Add meg a kiinduló pontot"
+        android:inputType="text"
+        android:minHeight="48dp"
+        android:textColor="#C3C3C3"
+        android:textColorHint="#C3C3C3" />
+
+    <!-- Célpont EditText -->
+    <EditText
+        android:id="@+id/endPointEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/routeModeRadioGroup"
+        android:layout_marginBottom="20dp"
+        android:hint="Add meg a célpontot"
+        android:inputType="text"
+        android:minHeight="48dp"
+        android:textColor="#C3C3C3"
+        android:textColorHint="#C3C3C3" />
+
+    <!-- Útvonal mód választó -->
+    <RadioGroup
+        android:id="@+id/routeModeRadioGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/planRouteButton"
+        android:layout_marginBottom="20dp">
+
+        <androidx.appcompat.widget.AppCompatRadioButton
+            android:id="@+id/fastestRoute"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Leggyorsabb út"
+            android:textColor="#C3C3C3"
+            app:buttonTint="@color/radio_button_tint" />
+
+
+
+
+        <androidx.appcompat.widget.AppCompatRadioButton
+            android:id="@+id/shortestRoute"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Legrövidebb út"
+            android:textColor="#C3C3C3"
+            app:buttonTint="@color/radio_button_tint" />
+    </RadioGroup>
+
+    <!-- Gomb az útvonal tervezéséhez -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/planRouteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="40dp"
+        android:text="Útvonal tervezése"
+        android:textColor="#000000"
+        app:backgroundTint="#FFA435" />
+
+
+
+</RelativeLayout>
