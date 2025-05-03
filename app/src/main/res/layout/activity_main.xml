@@ -4,21 +4,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="#2A2A2A">
 
-    <!-- Térkép Placeholder -->
-    <TextView
-        android:id="@+id/mapPlaceholder"
+    <!-- Térkép -->
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_above="@+id/startPointEditText"
+        android:layout_height="356dp"
         android:layout_alignParentTop="true"
         android:layout_marginTop="0dp"
-        android:layout_marginBottom="20dp"
-        android:background="#e0e0e0"
-        android:gravity="center"
-        android:text="Google Maps (Placeholder)"
-        android:textColor="#000000"
-        android:textSize="18sp"
-        android:visibility="visible" />
+        android:layout_marginBottom="20dp" />
 
     <!-- Kiinduló pont EditText -->
     <EditText
