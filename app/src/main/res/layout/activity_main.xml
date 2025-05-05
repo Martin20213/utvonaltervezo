@@ -1,85 +1,134 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="#2A2A2A">
+    android:background="#1A1A1A">
 
     <!-- Térkép -->
     <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="match_parent"
-        android:layout_height="356dp"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="0dp"
+        android:layout_width="0dp"
+        android:layout_height="300dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/startPointInputLayout"
         android:layout_marginBottom="20dp" />
 
     <!-- Kiinduló pont EditText -->
-    <EditText
-        android:id="@+id/startPointEditText"
-        android:layout_width="match_parent"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/startPointInputLayout"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/endPointEditText"
-        android:layout_marginBottom="20dp"
-        android:hint="Add meg a kiinduló pontot"
-        android:inputType="text"
-        android:minHeight="48dp"
-        android:textColor="#C3C3C3"
-        android:textColorHint="#C3C3C3" />
+        app:layout_constraintTop_toBottomOf="@id/map"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="20dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/startPointEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Add meg a kiinduló pontot"
+            android:inputType="text"
+            android:textColorHint="#A5A5A5"
+            android:textColor="#FFFFFF" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Célpont EditText -->
-    <EditText
-        android:id="@+id/endPointEditText"
-        android:layout_width="match_parent"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/endPointInputLayout"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/routeModeRadioGroup"
-        android:layout_marginBottom="20dp"
-        android:hint="Add meg a célpontot"
-        android:inputType="text"
-        android:minHeight="48dp"
-        android:textColor="#C3C3C3"
-        android:textColorHint="#C3C3C3" />
+        app:layout_constraintTop_toBottomOf="@id/startPointInputLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="20dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/endPointEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Add meg a célpontot"
+            android:inputType="text"
+            android:textColorHint="#A5A5A5"
+            android:textColor="#FFFFFF" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Útvonal mód választó -->
     <RadioGroup
         android:id="@+id/routeModeRadioGroup"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/planRouteButton"
+        app:layout_constraintTop_toBottomOf="@id/endPointInputLayout"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginBottom="20dp">
 
         <androidx.appcompat.widget.AppCompatRadioButton
-            android:id="@+id/fastestRoute"
+            android:id="@+id/carButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Leggyorsabb út"
+            android:text="Autó"
+            android:textColor="#C3C3C3"
+            app:buttonTint="@color/radio_button_tint"
+            android:checked="true" />  <!-- Alapértelmezett -->
+
+        <androidx.appcompat.widget.AppCompatRadioButton
+            android:id="@+id/walkButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Séta"
             android:textColor="#C3C3C3"
             app:buttonTint="@color/radio_button_tint" />
 
-
-
-
         <androidx.appcompat.widget.AppCompatRadioButton
-            android:id="@+id/shortestRoute"
+            android:id="@+id/bikeButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Legrövidebb út"
+            android:text="Bicikli"
             android:textColor="#C3C3C3"
             app:buttonTint="@color/radio_button_tint" />
     </RadioGroup>
+
+    <!-- Útvonal időtartama szöveg -->
+    <TextView
+        android:id="@+id/durationTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Útvonal időtartama: "
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        app:layout_constraintTop_toBottomOf="@id/routeModeRadioGroup"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp"
+        android:layout_marginBottom="20dp" />
+    <TextView
+        android:id="@+id/arrivalTimeTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Érkezési idő: "
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@id/durationTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
 
     <!-- Gomb az útvonal tervezéséhez -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/planRouteButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginBottom="40dp"
         android:text="Útvonal tervezése"
         android:textColor="#000000"
-        app:backgroundTint="#FFA435" />
-
-
-
-</RelativeLayout>
+        app:backgroundTint="#FFA435"
+        app:cornerRadius="16dp" />
+</androidx.constraintlayout.widget.ConstraintLayout>
