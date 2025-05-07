@@ -3,6 +3,7 @@ package com.example.utvonaltervezo.presentation.ui;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -250,7 +251,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (currentRoute != null) {
                     currentRoute.remove();
                 }
-                currentRoute = mMap.addPolyline(new PolylineOptions().addAll(decodedPath));
+                currentRoute = mMap.addPolyline(new PolylineOptions().addAll(decodedPath).color(0xFFFFA500));
 
                 // Új: Számold ki a határokat a megrajzolt útvonalhoz
                 LatLngBounds.Builder builder = new LatLngBounds.Builder();
