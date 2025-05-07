@@ -30,6 +30,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -250,6 +251,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     currentRoute.remove();
                 }
                 currentRoute = mMap.addPolyline(new PolylineOptions().addAll(decodedPath));
+
+                // Új: Számold ki a határokat a megrajzolt útvonalhoz
+                LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                for (LatLng point : decodedPath) {
+                    builder.include(point);
+                }
+                LatLngBounds bounds = builder.build();
+
+                // Új: Mozgasd a kamerát a megfelelő határokra
+                int padding = 100; // Opcionális padding a jobb megjelenésért
+                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding));
 
                 TextView durationTextView = findViewById(R.id.durationTextView);
                 String hunDurationText = durationText
