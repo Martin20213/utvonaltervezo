@@ -1,24 +1,12 @@
-
-// app/src/main/java/com/example/utvonaltervezo/domain/model/Leg.java
 package com.example.utvonaltervezo.domain.model;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.gson.annotations.SerializedName;
 
-// Domain réteg
 public class Leg {
+    @SerializedName("duration")
     private Duration duration;
-
-    public Leg(Duration duration) {
-        this.duration = duration;
-    }
 
     public Duration getDuration() {
         return duration;
-    }
-
-    static Leg fromJson(JSONObject json) throws JSONException {
-        Duration duration = Duration.fromJson(json.getJSONObject("duration"));
-        return new Leg(duration);
     }
 }

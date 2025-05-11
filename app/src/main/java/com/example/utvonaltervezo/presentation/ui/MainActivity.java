@@ -2,18 +2,24 @@
 package com.example.utvonaltervezo.presentation.ui;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.location.Address;
+import android.location.Geocoder;
+
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,6 +38,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -39,17 +46,12 @@ import com.google.android.gms.tasks.Task;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
 // Presentation réteg
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
-    // Nyilvántartja, hogy melyik beviteli mező aktív jelenleg (ha valamelyikre kattintott a felhasználó)
-    private enum ActiveField { NONE, START, END }
-    // Alapértelmezetten egyik mező sincs kiválasztva
-    private ActiveField activeField = ActiveField.NONE;
     private EditText startPointEditText, endPointEditText;
     private Button planRouteButton, bikeButton, walkButton, carButton;
     private GoogleMap mMap;
@@ -64,6 +66,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private String timezone = "Europe/Budapest";
 
+    private LatLng selectedStartPoint = null;
+    private LatLng selectedEndPoint = null;
+    private com.google.android.gms.maps.model.Marker startMarker = null;
+    private com.google.android.gms.maps.model.Marker endMarker = null;
+
+    private Geocoder geocoder;
+
+    private boolean isStartPointJustUpdated = false;
+
+    private enum ActivateField {NONE, START, END}
+    private ActivateField activateField = ActivateField.NONE;
+
     private GetRouteUseCase getRouteUseCase;
     private GoogleMapsRouteRepository routeRepository; // Itt kellene inicializálni a repository-t
 
@@ -76,7 +90,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         // UI elemek
         startPointEditText = findViewById(R.id.startPointEditText);
         endPointEditText = findViewById(R.id.endPointEditText);
@@ -84,19 +97,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bikeButton = findViewById(R.id.bikeButton);
         walkButton = findViewById(R.id.walkButton);
         carButton = findViewById(R.id.carButton);
-
-        // Amikor a kiindulópont beviteli mezőre kattint a felhasználó, beállítjuk az aktív mezőt
-        startPointEditText.setOnClickListener(v -> activeField = ActiveField.START);
-        endPointEditText.setOnClickListener(v -> activeField = ActiveField.END);
-
-        startPointEditText.setOnClickListener(v -> {
-            activeField = ActiveField.START;
-            Toast.makeText(this, "Válassz pontot a térképen a kiinduló helyhez (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
-        });
-        endPointEditText.setOnClickListener(v -> {
-            activeField = ActiveField.END;
-            Toast.makeText(this, "Válassz pontot a térképen a célhoz (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
-        });
 
         // Helymeghatározási kliens inicializálása
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
@@ -127,9 +127,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
                 if (TextUtils.isEmpty(endText)) {
                     Toast.makeText(MainActivity.this, "Add meg a célpontot!", Toast.LENGTH_SHORT).show();
+                    activateField = ActivateField.END;
                     return;
                 }
-
                 try {
                     getRouteUseCase.execute(startText, endText, travelMode);
                 } catch (Exception e) {
@@ -162,6 +162,48 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(MainActivity.this, "Autóval fogunk tervezni!", Toast.LENGTH_SHORT).show();
             }
         });
+        geocoder = new Geocoder(this, java.util.Locale.getDefault());
+        startPointEditText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                activateField = ActivateField.START;
+                Toast.makeText(MainActivity.this, "Válassz pontot a térképen a kiinduló helyhez (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        endPointEditText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                activateField = ActivateField.END;
+                Toast.makeText(MainActivity.this, "Válassz pontot a térképen a célhoz (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
+            }
+        });
+        startPointEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_NEXT) {
+                    // Átugrás a célpont mezőre
+                    endPointEditText.requestFocus();
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        endPointEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    // Bezárjuk a billentyűzetet
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    // Meghívjuk a planRouteButton onClick-ját, ha már be van állítva
+                    planRouteButton.performClick();
+                    return true;
+                }
+                return false;
+            }
+        });
     }
 
     @Override
@@ -175,19 +217,173 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Toast.makeText(this, "Hiba a helymeghatározás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
 
-        mMap.setOnMapLongClickListener(latLng -> {
-            String coords = latLng.latitude + ", " + latLng.longitude;
+        // Kiindulópont és célpont kiválasztása érintéssel
+        mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            @Override
+            public void onMapLongClick(LatLng latLng) {
+                String addressText = getAddressFromLatLng(latLng);
 
-            if (activeField == ActiveField.START) {
-                startPointEditText.setText(coords);
-                activeField = ActiveField.NONE;
-            } else if (activeField == ActiveField.END) {
-                endPointEditText.setText(coords);
-                activeField = ActiveField.NONE;
+                if (activateField == ActivateField.START) {
+                    selectedStartPoint = latLng;
+                    if (startMarker != null) startMarker.remove();
+                    startMarker = mMap.addMarker(new MarkerOptions()
+                            .position(latLng)
+                            .title("Kiindulópont")
+                            .draggable(true));
+                    startPointEditText.setText(addressText);
+                    Toast.makeText(MainActivity.this, "Kiindulópont beállítva!", Toast.LENGTH_SHORT).show();
+
+                    if (currentRoute != null) {
+                        currentRoute.remove();
+                        currentRoute = null;
+                    }
+                    activateField = ActivateField.NONE;
+                } else if (activateField == ActivateField.END) {
+                    selectedEndPoint = latLng;
+                    if (endMarker != null) endMarker.remove();
+                    endMarker = mMap.addMarker(new MarkerOptions()
+                            .position(latLng)
+                            .title("Célpont")
+                            .draggable(true));
+                    endPointEditText.setText(addressText);
+                    Toast.makeText(MainActivity.this, "Célpont beállítva!", Toast.LENGTH_SHORT).show();
+
+                    if (currentRoute != null) {
+                        currentRoute.remove();
+                        currentRoute = null;
+                    }
+                    activateField = ActivateField.NONE;
+                } else {
+                    Toast.makeText(MainActivity.this, "Előbb válassz kiindulópontot vagy célpontot!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        mMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+            @Override
+            public void onMarkerDragStart(com.google.android.gms.maps.model.Marker marker) {}
+
+            @Override
+            public void onMarkerDrag(com.google.android.gms.maps.model.Marker marker) {}
+
+            @Override
+            public void onMarkerDragEnd(com.google.android.gms.maps.model.Marker marker) {
+                LatLng newPosition = marker.getPosition();
+                String addressText = getAddressFromLatLng(newPosition);
+
+                if (marker.equals(startMarker)) {
+                    selectedStartPoint = newPosition;
+                    startPointEditText.setText(addressText);
+                    Toast.makeText(MainActivity.this, "Kiindulópont áthelyezve!", Toast.LENGTH_SHORT).show();
+                } else if (marker.equals(endMarker)) {
+                    selectedEndPoint = newPosition;
+                    endPointEditText.setText(addressText);
+                    Toast.makeText(MainActivity.this, "Célpont áthelyezve!", Toast.LENGTH_SHORT).show();
+                }
+                if (currentRoute != null) {
+                    currentRoute.remove();
+                    currentRoute = null;
+                }
+            }
+        });
+        mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+            @Override
+            public boolean onMyLocationButtonClick() {
+                updateStartPointToCurrentLocation();
+                return false; // false: a térkép is odaugrik
             }
         });
     }
+    //Segédfüggvény (setOnMapLongClickListener)
+    private String getAddressFromLatLng(LatLng latLng) {
+        try {
+            List<Address> addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
 
+                // Város (locality), utca (thoroughfare), házszám (subThoroughfare)
+                String city = address.getLocality();
+                // Ha a városnév nincs kitöltve, nézzük meg az admin area-t is (néha ott van)
+                if (city == null || city.isEmpty()) {
+                    city = address.getSubAdminArea();
+                }
+                String street = address.getThoroughfare();
+                String number = address.getSubThoroughfare();
+
+                StringBuilder sb = new StringBuilder();
+                if (city != null && !city.isEmpty()) {
+                    sb.append(city);
+                }
+                if (street != null && !street.isEmpty()) {
+                    if (sb.length() > 0) sb.append(", ");
+                    sb.append(street);
+                }
+                if (number != null && !number.isEmpty()) {
+                    sb.append(" ").append(number);
+                }
+
+                // Ha sikerült város+utca(+házszám) összeállítani, azt add vissza
+                if (sb.length() > 0) {
+                    return sb.toString();
+                }
+
+                // Ha nincs, próbáld a teljes címet
+                String fullAddress = address.getAddressLine(0);
+                if (fullAddress != null && !fullAddress.isEmpty()) {
+                    return fullAddress;
+                }
+
+                // Ha van hely neve (feature name), azt add vissza
+                if (address.getFeatureName() != null && !address.getFeatureName().isEmpty()) {
+                    return address.getFeatureName();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // Ha semmi nincs, akkor a koordináta
+        return latLng.latitude + ", " + latLng.longitude;
+    }
+    //Segédfüggvény (setOnMyLocationButtonClickListener)
+    private void updateStartPointToCurrentLocation() {
+        try {
+            if (locationPermissionGranted) {
+                Task<Location> locationResult = fusedLocationProviderClient.getLastLocation();
+                locationResult.addOnCompleteListener(this, new OnCompleteListener<Location>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Location> task) {
+                        if (task.isSuccessful() && task.getResult() != null) {
+                            lastKnownLocation = task.getResult();
+                            LatLng currentLatLng = new LatLng(
+                                    lastKnownLocation.getLatitude(),
+                                    lastKnownLocation.getLongitude());
+
+                            // Útvonal törlése
+                            if (currentRoute != null) {
+                                currentRoute.remove();
+                                currentRoute = null;
+                            }
+
+                            // Kiindulópont frissítése
+                            selectedStartPoint = currentLatLng;
+                            String addressText = getAddressFromLatLng(currentLatLng);
+                            startPointEditText.setText(addressText);
+
+                            // Marker frissítése
+                            if (startMarker != null) startMarker.remove();
+                            startMarker = mMap.addMarker(new MarkerOptions()
+                                    .position(currentLatLng)
+                                    .title("Kiindulópont")
+                                    .draggable(true));
+                        }
+                    }
+                });
+            }
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+        isStartPointJustUpdated = true;
+    }
     private void getLocationPermission() {
         if (ContextCompat.checkSelfPermission(this.getApplicationContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION)
@@ -234,8 +430,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                     currentLatLng, DEFAULT_ZOOM));
 
-                            String locationText = lastKnownLocation.getLatitude() + ", " + lastKnownLocation.getLongitude();
-                            startPointEditText.setText(locationText);
+                            // Kiindulópont beállítása csak induláskor
+                            selectedStartPoint = currentLatLng;
+                            String addressText = getAddressFromLatLng(currentLatLng);
+                            startPointEditText.setText(addressText);
+
+                            // Marker beállítása
+                            if (startMarker != null) startMarker.remove();
+                            startMarker = mMap.addMarker(new MarkerOptions()
+                                    .position(currentLatLng)
+                                    .title("Kiindulópont")
+                                    .draggable(true));
                         } else {
                             mMap.moveCamera(CameraUpdateFactory
                                     .newLatLngZoom(defaultLocation, DEFAULT_ZOOM));
@@ -250,7 +455,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         } catch (SecurityException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Hiba a helymeghatározás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -320,21 +524,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private String calculateArrivalTime(long durationValue) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone(timezone)); // Kifejezetten magyar időzóna
-        calendar.add(Calendar.SECOND, (int) durationValue);
+        Calendar now = Calendar.getInstance(TimeZone.getTimeZone(timezone));
+        Calendar arrival = (Calendar) now.clone();
+        arrival.add(Calendar.SECOND, (int) durationValue);
 
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-        sdf.setTimeZone(TimeZone.getTimeZone(timezone)); // Formázás is magyar időzónával
+        SimpleDateFormat fullFormat = new SimpleDateFormat("MMM d (EEEE) HH:mm", new java.util.Locale("hu"));
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", new java.util.Locale("hu"));
+        fullFormat.setTimeZone(TimeZone.getTimeZone(timezone));
+        timeFormat.setTimeZone(TimeZone.getTimeZone(timezone));
 
-        Date arrivalTime = calendar.getTime();
-        return sdf.format(arrivalTime);
+        boolean nextDay = arrival.get(Calendar.YEAR) > now.get(Calendar.YEAR)
+                || arrival.get(Calendar.DAY_OF_YEAR) > now.get(Calendar.DAY_OF_YEAR);
 
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        routeRepository.shutdown();
+        if (nextDay) {
+            return fullFormat.format(arrival.getTime());
+        } else {
+            return timeFormat.format(arrival.getTime());
+        }
     }
 }
 
