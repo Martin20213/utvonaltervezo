@@ -46,6 +46,10 @@ import java.util.TimeZone;
 // Presentation réteg
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    // Nyilvántartja, hogy melyik beviteli mező aktív jelenleg (ha valamelyikre kattintott a felhasználó)
+    private enum ActiveField { NONE, START, END }
+    // Alapértelmezetten egyik mező sincs kiválasztva
+    private ActiveField activeField = ActiveField.NONE;
     private EditText startPointEditText, endPointEditText;
     private Button planRouteButton, bikeButton, walkButton, carButton;
     private GoogleMap mMap;
@@ -72,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         // UI elemek
         startPointEditText = findViewById(R.id.startPointEditText);
         endPointEditText = findViewById(R.id.endPointEditText);
@@ -79,6 +84,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         bikeButton = findViewById(R.id.bikeButton);
         walkButton = findViewById(R.id.walkButton);
         carButton = findViewById(R.id.carButton);
+
+        // Amikor a kiindulópont beviteli mezőre kattint a felhasználó, beállítjuk az aktív mezőt
+        startPointEditText.setOnClickListener(v -> activeField = ActiveField.START);
+        endPointEditText.setOnClickListener(v -> activeField = ActiveField.END);
+
+        startPointEditText.setOnClickListener(v -> {
+            activeField = ActiveField.START;
+            Toast.makeText(this, "Válassz pontot a térképen a kiinduló helyhez (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
+        });
+        endPointEditText.setOnClickListener(v -> {
+            activeField = ActiveField.END;
+            Toast.makeText(this, "Válassz pontot a térképen a célhoz (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
+        });
 
         // Helymeghatározási kliens inicializálása
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
@@ -156,6 +174,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             e.printStackTrace();
             Toast.makeText(this, "Hiba a helymeghatározás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+
+        mMap.setOnMapLongClickListener(latLng -> {
+            String coords = latLng.latitude + ", " + latLng.longitude;
+
+            if (activeField == ActiveField.START) {
+                startPointEditText.setText(coords);
+                activeField = ActiveField.NONE;
+            } else if (activeField == ActiveField.END) {
+                endPointEditText.setText(coords);
+                activeField = ActiveField.NONE;
+            }
+        });
     }
 
     private void getLocationPermission() {
