@@ -1,59 +1,46 @@
-
-// app/src/main/java/com/example/utvonaltervezo/data/repository/GoogleMapsRouteRepository.java
 package com.example.utvonaltervezo.data.repository;
 
+import com.example.utvonaltervezo.data.api.GoogleMapsApi;
 import com.example.utvonaltervezo.domain.model.RouteResponse;
 import com.example.utvonaltervezo.domain.repository.RouteRepository;
 
-import org.json.JSONObject;
-import org.json.JSONException;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-// Data réteg
 public class GoogleMapsRouteRepository implements RouteRepository {
-    private ExecutorService networkExecutor;
+
+    private static final String BASE_URL = "https://maps.googleapis.com/maps/api/";
+    private GoogleMapsApi googleMapsApi;
 
     public GoogleMapsRouteRepository() {
-        this.networkExecutor = Executors.newFixedThreadPool(4);
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        googleMapsApi = retrofit.create(GoogleMapsApi.class);
     }
 
     @Override
     public void getRoute(String startPoint, String endPoint, String travelMode, RouteCallback callback) {
-        String url = "https://maps.googleapis.com/maps/api/directions/json?origin=" + startPoint + "&destination=" + endPoint + "&mode=" + travelMode + "&key=AIzaSyDk9jTdaImBhQXKhauibuwymie67ojrj5s";
-        networkExecutor.execute(new Runnable() {
+        Call<RouteResponse> call = googleMapsApi.getRoute(startPoint, endPoint, travelMode, "AIzaSyDk9jTdaImBhQXKhauibuwymie67ojrj5s");
+        call.enqueue(new Callback<RouteResponse>() {
             @Override
-            public void run() {
-                try {
-                    HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-                    connection.setRequestMethod("GET");
-                    connection.setConnectTimeout(15000);
-                    connection.setReadTimeout(15000);
-                    connection.connect();
-                    Scanner scanner = new Scanner(connection.getInputStream());
-                    StringBuilder response = new StringBuilder();
-                    while (scanner.hasNext()) {
-                        response.append(scanner.nextLine());
-                    }
-                    JSONObject jsonResponse = new JSONObject(response.toString());
-                    RouteResponse routeResponse = RouteResponse.fromJson(jsonResponse);
-                    callback.onSuccess(routeResponse);
-                } catch (IOException | JSONException e) {
-                    e.printStackTrace();
+            public void onResponse(Call<RouteResponse> call, Response<RouteResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    callback.onSuccess(response.body());
+                } else {
                     callback.onError("Hiba történt az útvonal lekérése során.");
                 }
             }
-        });
-    }
 
-    public void shutdown() {
-        if (networkExecutor != null) {
-            networkExecutor.shutdown();
-        }
+            @Override
+            public void onFailure(Call<RouteResponse> call, Throwable t) {
+                callback.onError("Hiba történt az útvonal lekérése során: " + t.getMessage());
+            }
+        });
     }
 }
