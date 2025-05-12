@@ -122,11 +122,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 String endText = endPointEditText.getText().toString().trim();
 
                 if (TextUtils.isEmpty(startText)) {
-                    Toast.makeText(MainActivity.this, "Add meg a kiinduló pontot!", Toast.LENGTH_SHORT).show();
+                    showToast("Add meg a kiinduló pontot!");
                     return;
                 }
                 if (TextUtils.isEmpty(endText)) {
-                    Toast.makeText(MainActivity.this, "Add meg a célpontot!", Toast.LENGTH_SHORT).show();
+                    showToast("Add meg a célpontot!");
                     activateField = ActivateField.END;
                     return;
                 }
@@ -134,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     getRouteUseCase.execute(startText, endText, travelMode);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Toast.makeText(MainActivity.this, "Hiba történt az útvonal tervezése során: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    showToast("Hiba történt az útvonal tervezése során: "+ e.getMessage());
                 }
             }
         });
@@ -143,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 travelMode = "bicycling";
-                Toast.makeText(MainActivity.this, "Biciklivel fogunk tervezni!", Toast.LENGTH_SHORT).show();
+                showToast("Biciklivel fogunk tervezni!");
             }
         });
 
@@ -151,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 travelMode = "walking";
-                Toast.makeText(MainActivity.this, "Gyalogosan fogunk tervezni!", Toast.LENGTH_SHORT).show();
+                showToast("Gyalogosan fogunk tervezni!");
             }
         });
 
@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 travelMode = "driving";
-                Toast.makeText(MainActivity.this, "Autóval fogunk tervezni!", Toast.LENGTH_SHORT).show();
+                showToast("Autóval fogunk tervezni!");
             }
         });
         geocoder = new Geocoder(this, java.util.Locale.getDefault());
@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 activateField = ActivateField.START;
-                Toast.makeText(MainActivity.this, "Válassz pontot a térképen a kiinduló helyhez (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
+                showToast("Válassz pontot a térképen a kiinduló helyhez (hosszan nyomva)!");
             }
         });
 
@@ -175,7 +175,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 activateField = ActivateField.END;
-                Toast.makeText(MainActivity.this, "Válassz pontot a térképen a célhoz (hosszan nyomva)!", Toast.LENGTH_SHORT).show();
+                showToast("Válassz pontot a térképen a célhoz (hosszan nyomva)!");
             }
         });
         startPointEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
@@ -205,7 +205,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -214,7 +213,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             getDeviceLocation();
         } catch (SecurityException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Hiba a helymeghatározás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            showToast("Hiba a helymeghatározás során: " + e.getMessage());
         }
 
         // Kiindulópont és célpont kiválasztása érintéssel
@@ -225,18 +224,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 if (activateField == ActivateField.START) {
                     selectedStartPoint = latLng;
-                    if (startMarker != null) startMarker.remove();
-                    startMarker = mMap.addMarker(new MarkerOptions()
-                            .position(latLng)
-                            .title("Kiindulópont")
-                            .draggable(true));
+                    startMarker = updateMarker(startMarker, latLng, "Kiindulópont");
                     startPointEditText.setText(addressText);
-                    Toast.makeText(MainActivity.this, "Kiindulópont beállítva!", Toast.LENGTH_SHORT).show();
-
-                    if (currentRoute != null) {
-                        currentRoute.remove();
-                        currentRoute = null;
-                    }
+                    showToast("Kiindulópont beállítva!");
+                    removeCurrentRoute();
                     activateField = ActivateField.NONE;
                 } else if (activateField == ActivateField.END) {
                     selectedEndPoint = latLng;
@@ -246,15 +237,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             .title("Célpont")
                             .draggable(true));
                     endPointEditText.setText(addressText);
-                    Toast.makeText(MainActivity.this, "Célpont beállítva!", Toast.LENGTH_SHORT).show();
-
-                    if (currentRoute != null) {
-                        currentRoute.remove();
-                        currentRoute = null;
-                    }
+                    showToast("Célpont beállítva!");
+                    removeCurrentRoute();
                     activateField = ActivateField.NONE;
                 } else {
-                    Toast.makeText(MainActivity.this, "Előbb válassz kiindulópontot vagy célpontot!", Toast.LENGTH_SHORT).show();
+                    showToast("Előbb válassz kiindulópontot vagy célpontot!");
                 }
             }
         });
@@ -274,16 +261,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (marker.equals(startMarker)) {
                     selectedStartPoint = newPosition;
                     startPointEditText.setText(addressText);
-                    Toast.makeText(MainActivity.this, "Kiindulópont áthelyezve!", Toast.LENGTH_SHORT).show();
+                    showToast("Kiindulópont áthelyezve!");
                 } else if (marker.equals(endMarker)) {
                     selectedEndPoint = newPosition;
                     endPointEditText.setText(addressText);
-                    Toast.makeText(MainActivity.this, "Célpont áthelyezve!", Toast.LENGTH_SHORT).show();
+                    showToast("Célpont áthelyezve!");
                 }
-                if (currentRoute != null) {
-                    currentRoute.remove();
-                    currentRoute = null;
-                }
+                removeCurrentRoute();
             }
         });
         mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
@@ -359,10 +343,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     lastKnownLocation.getLongitude());
 
                             // Útvonal törlése
-                            if (currentRoute != null) {
-                                currentRoute.remove();
-                                currentRoute = null;
-                            }
+                            removeCurrentRoute();
 
                             // Kiindulópont frissítése
                             selectedStartPoint = currentLatLng;
@@ -370,11 +351,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             startPointEditText.setText(addressText);
 
                             // Marker frissítése
-                            if (startMarker != null) startMarker.remove();
-                            startMarker = mMap.addMarker(new MarkerOptions()
-                                    .position(currentLatLng)
-                                    .title("Kiindulópont")
-                                    .draggable(true));
+                            startMarker = updateMarker(startMarker, currentLatLng, "Kiindulópont");
                         }
                     }
                 });
@@ -410,7 +387,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             getDeviceLocation();
         } catch (SecurityException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Hiba a helymeghatározás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            showToast("Hiba a helymeghatározás során: " + e.getMessage());
         }
     }
 
@@ -436,11 +413,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             startPointEditText.setText(addressText);
 
                             // Marker beállítása
-                            if (startMarker != null) startMarker.remove();
-                            startMarker = mMap.addMarker(new MarkerOptions()
-                                    .position(currentLatLng)
-                                    .title("Kiindulópont")
-                                    .draggable(true));
+                            startMarker = updateMarker(startMarker, currentLatLng, "Kiindulópont");
+
                         } else {
                             mMap.moveCamera(CameraUpdateFactory
                                     .newLatLngZoom(defaultLocation, DEFAULT_ZOOM));
@@ -473,12 +447,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         } catch (SecurityException e) {
             e.printStackTrace();
-            Toast.makeText(this, "Hiba a helymeghatározás során: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            showToast("Hiba a helymeghatározás során: " + e.getMessage());
         }
     }
 
     public void displayRoute(List<LatLng> decodedPath, String durationText, long durationValue) {
-        // A térkép kezelése a fő szálon kell történjen
+        // A térkép kezelése a fő szálon
         mainThreadHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -522,7 +496,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
-
+    private void removeCurrentRoute() {
+        if (currentRoute != null) {
+            currentRoute.remove();
+            currentRoute = null;
+        }
+    }
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+    private com.google.android.gms.maps.model.Marker updateMarker(com.google.android.gms.maps.model.Marker oldMarker, LatLng position, String title) {
+        if (oldMarker != null) oldMarker.remove();
+        return mMap.addMarker(new MarkerOptions()
+                .position(position)
+                .title(title)
+                .draggable(true));
+    }
     private String calculateArrivalTime(long durationValue) {
         Calendar now = Calendar.getInstance(TimeZone.getTimeZone(timezone));
         Calendar arrival = (Calendar) now.clone();
